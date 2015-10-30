@@ -23,7 +23,7 @@ fn main() {
 }
 
 fn pg(output: &mut String) {
-    let conn = Connection::connect("postgres://postgres@localhost", &SslMode::None)
+    let conn = Connection::connect(env!("DATABASE_URL"), &SslMode::None)
             .unwrap();
 
     conn.execute("DROP TABLE IF EXISTS person;", &[]).unwrap();
