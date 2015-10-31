@@ -1,9 +1,13 @@
 extern crate postgres;
 extern crate iron;
 
-use postgres::{Connection, SslMode};
+use std::io::prelude::*;
+use std::io::{self};
+use std::str::FromStr;
+use std::env;
 use iron::prelude::*;
 use iron::status;
+use postgres::{Connection, SslMode};
 
 struct Person {
     id: i32,
@@ -11,19 +15,36 @@ struct Person {
     data: Option<Vec<u8>>
 }
 
-fn main() {
-    fn hello_world(_: &mut Request) -> IronResult<Response> {
-        let mut s = String::new();
-        pg(&mut s);
-        Ok(Response::with((status::Ok, s)))
-    }
 
-    Iron::new(hello_world).http("localhost:3000").unwrap();
-    println!("On 3000");
+fn main() {
+    fn handler(_: &mut Request) -> IronResult<Response> {
+        let mut buffer = Vec::new();
+        pg(&mut buffer);
+        Ok(Response::with((status::Ok, buffer)))
+    }
+    Iron::new(handler).http(("0.0.0.0", get_server_port())).unwrap();
 }
 
-fn pg(output: &mut String) {
-    let conn = Connection::connect(env!("DATABASE_URL"), &SslMode::None)
+/// Look up our server port number in PORT, for compatibility with Heroku.
+fn get_server_port() -> u16 {
+    let port_str = env::var("PORT").unwrap_or(String::new());
+    FromStr::from_str(&port_str).unwrap_or(3000)
+}
+
+/// Get the database url from the environment
+fn get_pg_url() -> String {
+	env::var("DATABASE_URL").unwrap_or("postgres://postgres@localhost".to_string())
+}
+
+/// Get a postgres database URL.
+
+#[test]
+fn test_pg() {
+	pg(&mut std::io::stdout());
+}
+
+fn pg(output: &mut Write) {
+    let conn = Connection::connect(&*get_pg_url(), &SslMode::None)
             .unwrap();
 
     conn.execute("DROP TABLE IF EXISTS person;", &[]).unwrap();
@@ -33,7 +54,7 @@ fn pg(output: &mut String) {
                     name            VARCHAR NOT NULL,
                     data            BYTEA
                   )", &[]).unwrap();
-    output.push_str("table created...\n");
+    writeln!(output, "table created...");
     let mut n = 0;
     for _ in 0..1 {
 	    conn.execute("BEGIN TRANSACTION", &[]).unwrap();
@@ -48,7 +69,7 @@ fn pg(output: &mut String) {
 		                 &[&me.name, &me.data]).unwrap();
 		}
 		conn.execute("COMMIT TRANSACTION", &[]).unwrap();
-    	output.push_str(&format!("Done inserting {} people", n));
+    	writeln!(output, "Done inserting {} people", n);
     }
     let stmt = conn.prepare("SELECT id, name, data FROM person where id < $1").unwrap();
     n = 0;
@@ -59,8 +80,7 @@ fn pg(output: &mut String) {
             data: row.get(2)
         };
         n += 1;
-        output.push_str(&format!("Found {}", person.name));
+        writeln!(output, "Found {}", person.name);
     }
-    output.push_str(&format!("Found {} people", n));
-
+    writeln!(output, "Found {} people", n);
 }
