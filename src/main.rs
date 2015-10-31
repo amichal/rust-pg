@@ -44,33 +44,33 @@ fn test_pg() {
 }
 
 fn pg(output: &mut Write) {
+    let mut n = 0;
     let conn = Connection::connect(&*get_pg_url(), &SslMode::None)
             .unwrap();
 
-    conn.execute("DROP TABLE IF EXISTS person;", &[]).unwrap();
+  //   conn.execute("DROP TABLE IF EXISTS person;", &[]).unwrap();
 
-    conn.execute("CREATE TABLE person (
-                    id              SERIAL PRIMARY KEY,
-                    name            VARCHAR NOT NULL,
-                    data            BYTEA
-                  )", &[]).unwrap();
-    writeln!(output, "table created...");
-    let mut n = 0;
-    for _ in 0..1 {
-	    conn.execute("BEGIN TRANSACTION", &[]).unwrap();
-	    for _ in 0..10000 {
-	    	n += 1;
-		    let me = Person {
-		        id: 0,
-		        name: format!("Steven {}", n),
-		        data: None
-		    };
-		    conn.execute("INSERT INTO person (name, data) VALUES ($1, $2)",
-		                 &[&me.name, &me.data]).unwrap();
-		}
-		conn.execute("COMMIT TRANSACTION", &[]).unwrap();
-    	writeln!(output, "Done inserting {} people", n);
-    }
+  //   conn.execute("CREATE TABLE person (
+  //                   id              SERIAL PRIMARY KEY,
+  //                   name            VARCHAR NOT NULL,
+  //                   data            BYTEA
+  //                 )", &[]).unwrap();
+  //   writeln!(output, "table created...");
+  //   for _ in 0..1 {
+	 //    conn.execute("BEGIN TRANSACTION", &[]).unwrap();
+	 //    for _ in 0..100 {
+	 //    	n += 1;
+		//     let me = Person {
+		//         id: 0,
+		//         name: format!("Steven {}", n),
+		//         data: None
+		//     };
+		//     conn.execute("INSERT INTO person (name, data) VALUES ($1, $2)",
+		//                  &[&me.name, &me.data]).unwrap();
+		// }
+		// conn.execute("COMMIT TRANSACTION", &[]).unwrap();
+  //   	writeln!(output, "Done inserting {} people", n);
+  //   }
     let stmt = conn.prepare("SELECT id, name, data FROM person where id < $1").unwrap();
     n = 0;
     for row in stmt.query(&[&1000]).unwrap() {
@@ -80,7 +80,7 @@ fn pg(output: &mut Write) {
             data: row.get(2)
         };
         n += 1;
-        writeln!(output, "Found {}", person.name);
+        writeln!(output, "Found id={}, name={}", person.id, person.name);
     }
     writeln!(output, "Found {} people", n);
 }
