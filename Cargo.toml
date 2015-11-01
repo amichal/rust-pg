@@ -2,6 +2,11 @@
 name = "pg"
 version = "0.1.0"
 authors = ["Aaron Michal <amichal@greenriver.org>"]
+readme  = "README.md"
+
+[[bin]]
+name = "pg"
+doc = true
 
 [dependencies]
 postgres = "0.10"

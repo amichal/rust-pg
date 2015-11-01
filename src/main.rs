@@ -1,4 +1,5 @@
-/// quick hack at
+/// quick hack at a building a traditional web application in rust
+
 // library dependancies via Cargo crates
 
 extern crate postgres;
@@ -17,7 +18,7 @@ use iron::status;
 use postgres::{Connection, SslMode};
 
 
-// a structure mapping to a database row
+/// a structure mapping to a database row.
 struct Person {
     id: i32,
     name: String,
@@ -25,7 +26,7 @@ struct Person {
 }
 
 
-// main entry point.
+/// main entry point.
 fn main() {
     // setup a iron request handler (notice this is a inner function
     // of main)
@@ -73,8 +74,8 @@ fn test_pg() {
 	pg(&mut std::io::stdout());
 }
 
-/// Dumping groud and the main body of our code
-// see the docs for rust-postgres https://github.com/sfackler/rust-postgres for the details of the API. Most of this is direct copy paste from there
+/// Dumping groud and the main body of our code.
+/// See the docs for rust-postgres https://github.com/sfackler/rust-postgres for the details of the API. Most of this is direct copy paste from there.
 fn pg(output: &mut Write) {
     let mut n = 0;
 

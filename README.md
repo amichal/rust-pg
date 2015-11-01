@@ -2,6 +2,9 @@
 Playing with rust and postgres. This is my first rust codebase and
 everything I know starts with reading https://doc.rust-lang.org/stable/book. if you know rust or what a real application don't look here.
 
+
+# Test Deployment @ https://thawing-brushlands-6266.herokuapp.com/
+
 # Quick Start
 ```bash
 brew install rust; #install rust stable
