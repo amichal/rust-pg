@@ -15,6 +15,9 @@ cargo run # build any missing our out of date binaries to `target/debug/...` and
 cargo run --release
 ```
 
+### Like test?
+Rust encourages including test code right in your src. `cargo test` will find and run all test functions and report on thier ruslts
+
 # Notes for rails devs
 * `src/main.rs` is the actuall rust code and has inline comments. After skimming it you should probaby go read the rust docs if you are still interested.
 * `Cargo.toml` is like a `Gemfile` or `.gemspec`. See also `Cargo.lock`. https://crates.io/ ~= https://rubygems.org/
