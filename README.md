@@ -18,3 +18,6 @@ cargo run --release
 * This currently uses `https://github.com/iron/iron` as a web framework and `https://github.com/sfackler/rust-postgres` for talking to postgres. I want to try out https://github.com/nickel-org/nickel.rs as well and some of the ORMs and db abstraction layers
 * Next up for exploration are HTML templating. https://github.com/jeremyletang/rust-haml exists but since my goal ist o explore more efficent runtime i really want to try https://github.com/lfairy/maud which does the template compliation at runtime and doesn't need to have everything turned into a heap allocated Hash
 
+`src/main.rs`
+
+TODO
