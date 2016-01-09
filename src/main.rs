@@ -75,7 +75,7 @@ fn basic_handler(req: &mut Request) -> IronResult<Response> {
     let conn = pool.get().unwrap();
     let stmt = conn.prepare("SELECT id, name, data FROM person where id < $1").unwrap();
     let mut n = 0;
-    for row in stmt.query(&[&100]).unwrap().iter() {
+    for row in stmt.query(&[&1000]).unwrap().iter() {
         let person = Person {
             id: row.get(0),
             name: row.get(1),
