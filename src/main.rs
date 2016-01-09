@@ -44,8 +44,6 @@ fn main() {
     let conn_string = get_pg_url();
     println!("connecting to postgres: {}", conn_string);
     let pool = setup_connection_pool(&conn_string, 10);
-    let _conn = pool.get().unwrap();
-
     let (logger_before, logger_after) = Logger::new(None);
 
     let mut chain = Chain::new(basic_handler);
@@ -69,7 +67,7 @@ fn basic_handler(req: &mut Request) -> IronResult<Response> {
     let mut body = Vec::new();
 
 
-    writeln!(body, "<link rel=\"shortcut icon\" href=\"data:image/x-icon;,\" type=\"image/x-icon\"><body><h1>Hello World</h1>").unwrap();
+    writeln!(body, "<link rel=\"icon\" type=\"image/png\" href=\"data:;base64,iVBORw0KGgo=\"><body><h1>Hello World</h1>").unwrap();
 
     let pool = req.get::<persistent::Read<AppDb>>().unwrap();
     let conn = pool.get().unwrap();
@@ -107,11 +105,4 @@ fn get_server_port() -> u16 {
 fn get_pg_url() -> String {
 	// pull a database url from the environment or default to localhost
   env::var("DATABASE_URL").unwrap_or("postgres://postgres@localhost".to_string())
-}
-
-/// Get a postgres database URL.
-#[test]
-fn test_pg() {
-  // this is cool. you can write tests in inline and 'feature flag' them to onlu get built in some modes. Include this function and run it with `cargo test`
-	pg(&mut std::io::stdout());
 }
