@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
 /// quick hack at a building a traditional web application in rust
 
 // library dependancies via Cargo crates
