@@ -30,6 +30,7 @@ pub struct AppDb;
 impl Key for AppDb { type Value = PostgresPool; }
 
 
+#[allow(dead_code)]
 struct Person {
     id: i32,
     name: String,
