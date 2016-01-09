@@ -1,56 +1,98 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 /// quick hack at a building a traditional web application in rust
 
 // library dependancies via Cargo crates
 
-extern crate postgres;
 extern crate iron;
+extern crate persistent;
+extern crate logger;
+extern crate r2d2;
+extern crate r2d2_postgres;
+extern crate postgres;
 
-// choose namespaces we need to use.
-use std::io::prelude::*;
-use std::io::{self};
 use std::str::FromStr;
-
+use std::io::prelude::*;
 use std::env;
-
 use iron::prelude::*;
-use iron::status;
+use iron::typemap::Key;
+use iron::mime::Mime;
+use logger::Logger;
 
-use postgres::{Connection, SslMode};
+
+// Postgres crates
+use r2d2::{Pool, PooledConnection};
+use r2d2_postgres::{PostgresConnectionManager};
+
+// Types
+
+pub type PostgresPool = Pool<PostgresConnectionManager>;
+pub type PostgresPooledConnection = PooledConnection<PostgresConnectionManager>;
+pub struct AppDb;
+impl Key for AppDb { type Value = PostgresPool; }
 
 
-/// a structure mapping to a database row.
 struct Person {
     id: i32,
     name: String,
     data: Option<Vec<u8>>
 }
 
-
 /// main entry point.
 fn main() {
-    // setup a iron request handler (notice this is a inner function
-    // of main)
-    fn handler(_: &mut Request) -> IronResult<Response> {
+    let conn_string = get_pg_url();
+    println!("connecting to postgres: {}", conn_string);
+    let pool = setup_connection_pool(&conn_string, 10);
+    let _conn = pool.get().unwrap();
 
-        // we will need a mutable buffer to write to
-        // Vec::new() gets is an expandable array of bytes
-        // that supports the Write trate
-        let mut buffer = Vec::new();
+    let (logger_before, logger_after) = Logger::new(None);
 
-        // call our funtion with that to fill it up
-        pg(&mut buffer);
+    let mut chain = Chain::new(basic_handler);
+    chain.link(persistent::Read::<AppDb>::both(pool));
+    chain.link_before(logger_before);
+    chain.link_after(logger_after);
 
-        // return from our handler a Ok result (rust-wise)
-        // containing a status::Ok http response with our
-        // buffer as the body
-        Ok(Response::with((status::Ok, buffer)))
+    Iron::new(chain).http(("0.0.0.0", get_server_port())).unwrap();
+}
+
+
+// Helper methods
+fn setup_connection_pool(cn_str: &str, pool_size: u32) -> PostgresPool {
+    let manager = ::r2d2_postgres::PostgresConnectionManager::new(cn_str, ::r2d2_postgres::SslMode::None).unwrap();
+    let config = ::r2d2::Config::builder().pool_size(pool_size).build();
+    ::r2d2::Pool::new(config, manager).unwrap()
+}
+
+fn basic_handler(req: &mut Request) -> IronResult<Response> {
+    let content_type = "text/html".parse::<Mime>().unwrap();
+    let mut body = Vec::new();
+
+
+    writeln!(body, "<link rel=\"shortcut icon\" href=\"data:image/x-icon;,\" type=\"image/x-icon\"><body><h1>Hello World</h1>").unwrap();
+
+    let pool = req.get::<persistent::Read<AppDb>>().unwrap();
+    let conn = pool.get().unwrap();
+    let stmt = conn.prepare("SELECT id, name, data FROM person where id < $1").unwrap();
+    let mut n = 0;
+    for row in stmt.query(&[&100]).unwrap().iter() {
+        let person = Person {
+            id: row.get(0),
+            name: row.get(1),
+            data: row.get(2)
+        };
+        n += 1;
+        writeln!(body, "<p>Found id={}, name={}", person.id, person.name).unwrap();
     }
+    writeln!(body, "<p>Found {} people", n).unwrap();
 
-    // bind Iron to all ipv4 interfaces on some port.
-    // in rust we call unwrap() a lot to consume the Result of
-    // any functions that return a Result. this avoids warnings
-    // and helps the compiler know when to free return memory
-    Iron::new(handler).http(("0.0.0.0", get_server_port())).unwrap();
+    Ok(
+      Response::with((
+        content_type,
+        iron::status::Ok,
+        body
+      ))
+    )
 }
 
 /// Look up our server port number in PORT env, for compatibility with Heroku.
@@ -72,53 +114,4 @@ fn get_pg_url() -> String {
 fn test_pg() {
   // this is cool. you can write tests in inline and 'feature flag' them to onlu get built in some modes. Include this function and run it with `cargo test`
 	pg(&mut std::io::stdout());
-}
-
-/// Dumping groud and the main body of our code.
-/// See the docs for rust-postgres https://github.com/sfackler/rust-postgres for the details of the API. Most of this is direct copy paste from there.
-fn pg(output: &mut Write) {
-    let mut n = 0;
-
-
-    // connect to postgress
-    let conn = Connection::connect(&*get_pg_url(), &SslMode::None)
-            .unwrap();
-
-  // table creation/population code. which i'm not running right now
-  //   conn.execute("DROP TABLE IF EXISTS person;", &[]).unwrap();
-  //   conn.execute("CREATE TABLE person (
-  //                   id              SERIAL PRIMARY KEY,
-  //                   name            VARCHAR NOT NULL,
-  //                   data            BYTEA
-  //                 )", &[]).unwrap();
-  //   writeln!(output, "table created...");
-  //   for _ in 0..1 {
-	 //    conn.execute("BEGIN TRANSACTION", &[]).unwrap();
-	 //    for _ in 0..100 {
-	 //    	n += 1;
-		//     let me = Person {
-		//         id: 0,
-		//         name: format!("Steven {}", n),
-		//         data: None
-		//     };
-		//     conn.execute("INSERT INTO person (name, data) VALUES ($1, $2)",
-		//                  &[&me.name, &me.data]).unwrap();
-		// }
-		// conn.execute("COMMIT TRANSACTION", &[]).unwrap();
-  //   	writeln!(output, "Done inserting {} people", n);
-  //   }
-
-    // select prepared statement (which we bind to arguments below)
-    let stmt = conn.prepare("SELECT id, name, data FROM person where id < $1").unwrap();
-    n = 0;
-    for row in stmt.query(&[&1000]).unwrap() {
-        let person = Person {
-            id: row.get(0),
-            name: row.get(1),
-            data: row.get(2)
-        };
-        n += 1;
-        writeln!(output, "Found id={}, name={}", person.id, person.name);
-    }
-    writeln!(output, "Found {} people", n);
 }
