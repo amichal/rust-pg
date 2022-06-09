@@ -1,5 +1,5 @@
 # rust-pg
-Playing with rust and postgres. This is my first rust codebase and
+Playing with rust and postgres. This was my first rust codebase and
 everything I know starts with reading https://doc.rust-lang.org/stable/book. if you know rust or what a real application don't look here.
 
 # Quick Start
